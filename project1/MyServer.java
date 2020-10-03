@@ -35,14 +35,65 @@ import java.util.stream.*;
 import java.util.concurrent.*;
 import java.net.*;
 
+// This is the main class driving the server
+class MyServer{
+    ///////////////////// Server Settings /////////////////////
 
-// This class stores some status lines for response headers
-class StatusLines {
-    public static final String CODE400 = "HTTP/1.0 400 Bad request";
-    public static final String CODE200 = "HTTP/1.0 200 OK";
-    public static final String CODE301 = "HTTP/1.0 301 Moved Permanently";
-    public static final String CODE404 = "HTTP/1.0 404 Not Found";
+    // Server Info
+    static final String SERVER_NAME = "localhost";
+    static final int PORT_NUMBER = 6789;
+
+    // Max number of connection threads
+    static final int MAX_CONNECTIONS = 256;
+
+    ///////////////////////////////////////////////////////////
+
+    // Main function
+    public static void main(String[] args) {
+        try {
+            ServerSocket welcomeSocket = new ServerSocket(PORT_NUMBER);
+            System.out.println("Server started. Dir = " + System.getProperty("user.dir"));
+
+            int test = 100;
+            // Main loop
+            while (test > 0) {
+                // Check if reached max capacity then wait 1ms
+                if (Thread.activeCount() > MAX_CONNECTIONS) {
+                    System.out.println("Server waiting...");
+                    Thread.sleep(1);
+                    continue;
+                }
+                // Start a new socket and a corresponding thread
+                try {
+                    Socket connectionSocket = welcomeSocket.accept();
+                    new Thread(new ConnectionHandler(connectionSocket)).start();
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+                // Update debug info
+                System.out.format("Active Connections: %d/%d\n", Thread.activeCount(),
+                                MAX_CONNECTIONS);
+                test--;                
+            }// End main loop
+        } 
+        catch (IOException e) {  // output exception info
+            System.out.println("Failed to get server socket at port " + PORT_NUMBER);
+            e.printStackTrace();
+        } 
+        catch (Throwable t) {  // catch all here
+            t.printStackTrace();
+        }
+    }
 }
+
+    // This class stores some status lines for response headers
+    class StatusLines {
+        public static final String CODE400 = "HTTP/1.0 400 Bad request";
+        public static final String CODE200 = "HTTP/1.0 200 OK";
+        public static final String CODE301 = "HTTP/1.0 301 Moved Permanently";
+        public static final String CODE404 = "HTTP/1.0 404 Not Found";
+    }
 
 // This class serves as a thread to handle the requests from the client socket
 class ConnectionHandler implements Runnable {
@@ -145,7 +196,7 @@ class ConnectionHandler implements Runnable {
             } // End while
             // Close output and socket
             out.close();
-			clientSocket.close();
+            clientSocket.close();
         }
         catch (IOException e) {
             e.printStackTrace(); // output exception info
@@ -198,56 +249,4 @@ class ConnectionHandler implements Runnable {
         }
     }
     
-}
-
-// This is the main class driving the server
-public class MyServer{
-    ///////////////////// Server Settings /////////////////////
-
-    // Server Info
-    static final String SERVER_NAME = "localhost";
-    static final int PORT_NUMBER = 6789;
-
-    // Max number of connection threads
-    static final int MAX_CONNECTIONS = 256;
-
-    ///////////////////////////////////////////////////////////
-
-    // Main function
-    public static void main(String[] args) {
-        try {
-            ServerSocket welcomeSocket = new ServerSocket(PORT_NUMBER);
-            System.out.println("Server started. Dir = " + System.getProperty("user.dir"));
-
-            int test = 100;
-            // Main loop
-            while (test > 0) {
-                // Check if reached max capacity then wait 1ms
-                if (Thread.activeCount() > MAX_CONNECTIONS) {
-                    System.out.println("Server waiting...");
-                    Thread.sleep(1);
-                    continue;
-                }
-                // Start a new socket and a corresponding thread
-                try {
-                    Socket connectionSocket = welcomeSocket.accept();
-                    new Thread(new ConnectionHandler(connectionSocket)).start();
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
-                // Update debug info
-                System.out.format("Active Connections: %d/%d\n", Thread.activeCount(),
-                                MAX_CONNECTIONS);
-                test--;                
-            }// End main loop
-        } 
-        catch (IOException e) {  // output exception info
-            System.out.println("Failed to get server socket at port " + PORT_NUMBER);
-            e.printStackTrace();
-        } 
-        catch (Throwable t) {  // catch all here
-            t.printStackTrace();
-        }
-    }
 }
